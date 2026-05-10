@@ -126,6 +126,14 @@ class TestTeslaSafetyBase(common.CarSafetyTest, common.AngleSteeringSafetyTest, 
     }
     return self.packer.make_can_msg_safety("DI_state", 0, values)
 
+  def _lkas_button_msg(self, enabled):
+    values = {
+      "DI_autopilotRequest": 1 if enabled else 0,
+      "DI_cruiseState": 0,
+      "DI_autoparkState": 0,
+    }
+    return self.packer.make_can_msg_safety("DI_state", 0, values)
+
   def _long_control_msg(self, set_speed, acc_state=0, jerk_limits=(0, 0), accel_limits=(0, 0), aeb_event=0, bus=0):
     values = {
       "DAS_setSpeed": set_speed,
@@ -212,6 +220,17 @@ class TestTeslaSafetyBase(common.CarSafetyTest, common.AngleSteeringSafetyTest, 
     for quality_flag in (True, False):
       msg = self._user_brake_msg(True, quality_flag=quality_flag)
       self.assertEqual(quality_flag, self._rx(msg))
+
+  def test_autopilot_request_engages_mads_lateral_only(self):
+    self.safety.set_mads_params(True, False, False)
+    self.safety.set_controls_allowed(False)
+
+    self.assertTrue(self._rx(self._lkas_button_msg(False)))
+    self.assertTrue(self._rx(self._lkas_button_msg(True)))
+
+    self.assertTrue(self.safety.get_controls_allowed_lateral())
+    self.assertFalse(self.safety.get_controls_allowed())
+    self.assertFalse(self.safety.get_longitudinal_allowed())
 
   def test_steering_wheel_disengage(self):
     # Tesla disengages when the user forcibly overrides the locked-in angle steering control

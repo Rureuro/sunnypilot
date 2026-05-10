@@ -1,6 +1,6 @@
 import copy
 from opendbc.can import CANDefine, CANParser
-from opendbc.car import Bus, structs
+from opendbc.car import Bus, create_button_events, structs
 from opendbc.car.carlog import carlog
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarStateBase
@@ -8,8 +8,10 @@ from opendbc.car.tesla.teslacan import get_steer_ctrl_type
 from opendbc.car.tesla.values import DBC, CANBUS, GEAR_MAP, STEER_THRESHOLD, TeslaFlags
 
 from opendbc.sunnypilot.car.tesla.carstate_ext import CarStateExt
+from opendbc.sunnypilot.car.tesla.values import TeslaFlagsSP
 
 ButtonType = structs.CarState.ButtonEvent.Type
+MADS_ONLY_PCM_ENABLE_BLOCK_FRAMES = 100
 
 
 class CarState(CarStateBase, CarStateExt):
@@ -27,6 +29,8 @@ class CarState(CarStateBase, CarStateExt):
 
     self.hands_on_level = 0
     self.das_control = None
+    self.autopilot_request = 0
+    self.mads_only_pcm_enable_block_frames = 0
 
   def update_autopark_state(self, autopark_state: str, cruise_enabled: bool):
     autopark_now = autopark_state in ("ACTIVE", "COMPLETE", "SELFPARK_STARTED")
@@ -74,19 +78,20 @@ class CarState(CarStateBase, CarStateExt):
                                                          eac_error_code == "EAC_ERROR_HIGH_ANGLE_RATE_SAFETY")
 
     # Cruise state
-    cruise_state = self.can_define.dv["DI_state"]["DI_cruiseState"].get(int(cp_party.vl["DI_state"]["DI_cruiseState"]), None)
-    speed_units = self.can_define.dv["DI_state"]["DI_speedUnits"].get(int(cp_party.vl["DI_state"]["DI_speedUnits"]), None)
+    di_state = cp_party.vl["DI_state"]
+    cruise_state = self.can_define.dv["DI_state"]["DI_cruiseState"].get(int(di_state["DI_cruiseState"]), None)
+    speed_units = self.can_define.dv["DI_state"]["DI_speedUnits"].get(int(di_state["DI_speedUnits"]), None)
 
-    autopark_state = self.can_define.dv["DI_state"]["DI_autoparkState"].get(int(cp_party.vl["DI_state"]["DI_autoparkState"]), None)
+    autopark_state = self.can_define.dv["DI_state"]["DI_autoparkState"].get(int(di_state["DI_autoparkState"]), None)
     cruise_enabled = cruise_state in ("ENABLED", "STANDSTILL", "OVERRIDE", "PRE_FAULT", "PRE_CANCEL")
     self.update_autopark_state(autopark_state, cruise_enabled)
 
     # Match panda safety cruise engaged logic
     ret.cruiseState.enabled = cruise_enabled and not self.autopark
     if speed_units == "KPH":
-      ret.cruiseState.speed = max(cp_party.vl["DI_state"]["DI_digitalSpeed"] * CV.KPH_TO_MS, 1e-3)
+      ret.cruiseState.speed = max(di_state["DI_digitalSpeed"] * CV.KPH_TO_MS, 1e-3)
     elif speed_units == "MPH":
-      ret.cruiseState.speed = max(cp_party.vl["DI_state"]["DI_digitalSpeed"] * CV.MPH_TO_MS, 1e-3)
+      ret.cruiseState.speed = max(di_state["DI_digitalSpeed"] * CV.MPH_TO_MS, 1e-3)
     ret.cruiseState.available = cruise_state == "STANDBY" or ret.cruiseState.enabled
     ret.cruiseState.standstill = False  # This needs to be false, since we can resume from stop without sending anything special
     ret.standstill = cp_party.vl["ESP_B"]["ESP_vehicleStandstillSts"] == 1
@@ -136,6 +141,19 @@ class CarState(CarStateBase, CarStateExt):
         if not self.fsd14_error_logged:
           carlog.error("FSD 14 detected, but FW not in FSD_14_FW set")
           self.fsd14_error_logged = True
+
+    # Treat Tesla's AP/cruise request as the MADS/LKAS toggle when the vehicle bus
+    # 3-finger touch signal is unavailable. This is intentionally MADS-only:
+    # block PCM enable long enough for controlsd to cancel any stock cruise enable.
+    if not (self.CP_SP.flags & TeslaFlagsSP.HAS_VEHICLE_BUS):
+      prev_autopilot_request = self.autopilot_request
+      self.autopilot_request = int(di_state["DI_autopilotRequest"])
+      ret.buttonEvents = create_button_events(self.autopilot_request, prev_autopilot_request, {1: ButtonType.lkas})
+
+      if self.autopilot_request:
+        self.mads_only_pcm_enable_block_frames = MADS_ONLY_PCM_ENABLE_BLOCK_FRAMES
+      ret.blockPcmEnable = self.mads_only_pcm_enable_block_frames > 0
+      self.mads_only_pcm_enable_block_frames = max(self.mads_only_pcm_enable_block_frames - 1, 0)
 
     # Buttons # ToDo: add Gap adjust button
 
