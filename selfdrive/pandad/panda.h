@@ -77,6 +77,8 @@ public:
   void set_power_saving(bool power_saving);
   void enable_deepsleep();
   void send_heartbeat(bool engaged, bool engaged_mads);
+  void set_mads_button(bool pressed);
+  void exit_mads();
   void set_can_speed_kbps(uint16_t bus, uint16_t speed);
   void set_can_fd_auto(uint16_t bus, bool enabled);
   void set_data_speed_kbps(uint16_t bus, uint16_t speed);

@@ -126,7 +126,7 @@ class TestTeslaSafetyBase(common.CarSafetyTest, common.AngleSteeringSafetyTest, 
     }
     return self.packer.make_can_msg_safety("DI_state", 0, values)
 
-  def _lkas_button_msg(self, enabled):
+  def _autopilot_request_msg(self, enabled):
     values = {
       "DI_autopilotRequest": 1 if enabled else 0,
       "DI_cruiseState": 0,
@@ -221,14 +221,27 @@ class TestTeslaSafetyBase(common.CarSafetyTest, common.AngleSteeringSafetyTest, 
       msg = self._user_brake_msg(True, quality_flag=quality_flag)
       self.assertEqual(quality_flag, self._rx(msg))
 
-  def test_autopilot_request_engages_mads_lateral_only(self):
+  def test_host_mads_button_engages_lateral_only(self):
     self.safety.set_mads_params(True, False, False)
     self.safety.set_controls_allowed(False)
 
-    self.assertTrue(self._rx(self._lkas_button_msg(False)))
-    self.assertTrue(self._rx(self._lkas_button_msg(True)))
+    self.safety.set_mads_button_press(0)
+    self.assertTrue(self._rx(self._pcm_status_msg(False)))
+    self.safety.set_mads_button_press(1)
+    self.assertTrue(self._rx(self._pcm_status_msg(False)))
 
     self.assertTrue(self.safety.get_controls_allowed_lateral())
+    self.assertFalse(self.safety.get_controls_allowed())
+    self.assertFalse(self.safety.get_longitudinal_allowed())
+
+  def test_autopilot_request_does_not_engage_mads(self):
+    self.safety.set_mads_params(True, False, False)
+    self.safety.set_controls_allowed(False)
+
+    self.assertTrue(self._rx(self._autopilot_request_msg(False)))
+    self.assertTrue(self._rx(self._autopilot_request_msg(True)))
+
+    self.assertFalse(self.safety.get_controls_allowed_lateral())
     self.assertFalse(self.safety.get_controls_allowed())
     self.assertFalse(self.safety.get_longitudinal_allowed())
 

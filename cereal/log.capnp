@@ -2459,6 +2459,8 @@ struct Event {
     userBookmark @93 :UserBookmark;
     bookmarkButton @148 :UserBookmark;
     audioFeedback @149 :AudioFeedback;
+    madsEnableButton @151 :UserBookmark;
+    madsDisableButton @152 :UserBookmark;
 
     lateralManeuverPlan @150 :LateralManeuverPlan;
 

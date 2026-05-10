@@ -765,6 +765,12 @@ class Panda:
   def send_heartbeat(self, engaged=True, engaged_mads=True):
     self._handle.controlWrite(Panda.REQUEST_OUT, 0xf3, engaged, engaged_mads, b'')
 
+  def set_mads_button(self, pressed):
+    self._handle.controlWrite(Panda.REQUEST_OUT, 0xfd, 1 if pressed else 0, 0, b'')
+
+  def exit_mads(self):
+    self._handle.controlWrite(Panda.REQUEST_OUT, 0xfd, 2, 0, b'')
+
   # disable heartbeat checks for use outside of openpilot
   # sending a heartbeat will reenable the checks
   def set_heartbeat_disabled(self):

@@ -180,6 +180,17 @@ class ModularAssistiveDrivingSystem:
         else:
           self.events_sp.add(EventNameSP.lkasEnable)
 
+    if self.CP.brand == "tesla" and self.selfdrive.sm.updated['madsEnableButton']:
+      if not self.enabled:
+        self.events_sp.add(EventNameSP.lkasEnable)
+
+    if self.CP.brand == "tesla" and self.selfdrive.sm.updated['madsDisableButton']:
+      if self.enabled:
+        if self.selfdrive.enabled:
+          self.events_sp.add(EventNameSP.manualSteeringRequired)
+        else:
+          self.events_sp.add(EventNameSP.lkasDisable)
+
     if not CS.cruiseState.available and not self.no_main_cruise:
       self.events.remove(EventName.buttonEnable)
       if self.selfdrive.CS_prev.cruiseState.available:

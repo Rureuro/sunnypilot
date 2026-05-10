@@ -11,6 +11,7 @@ from openpilot.selfdrive.ui.mici.onroad.hud_renderer import HudRenderer
 from openpilot.selfdrive.ui.mici.onroad.model_renderer import ModelRenderer
 from openpilot.selfdrive.ui.mici.onroad.confidence_ball import ConfidenceBall
 from openpilot.selfdrive.ui.mici.onroad.cameraview import CameraView
+from openpilot.selfdrive.ui.sunnypilot.onroad.mads_button import MadsButton
 from openpilot.system.ui.lib.application import FontWeight, gui_app, MousePos, MouseEvent
 from openpilot.system.ui.widgets.label import UnifiedLabel
 from openpilot.system.ui.widgets import Widget
@@ -152,6 +153,7 @@ class AugmentedRoadView(CameraView):
 
     # Bookmark icon with swipe gesture
     self._bookmark_icon = BookmarkIcon(bookmark_callback)
+    self._mads_button = self._child(MadsButton())
 
     self._model_renderer = ModelRenderer()
     self._hud_renderer = HudRenderer()
@@ -185,7 +187,7 @@ class AugmentedRoadView(CameraView):
 
   def _handle_mouse_release(self, mouse_pos: MousePos):
     # Don't trigger click callback if bookmark was triggered
-    if not self._bookmark_icon.interacting():
+    if not self._bookmark_icon.interacting() and not self._mads_button.is_pressed:
       super()._handle_mouse_release(mouse_pos)
 
   def _render(self, _):
@@ -247,6 +249,10 @@ class AugmentedRoadView(CameraView):
     # Custom UI extension point - add custom overlays here
     # Use self._content_rect for positioning within camera bounds
     self._confidence_ball.render(self.rect)
+
+    self._mads_button.render(rl.Rectangle(self._content_rect.x + 36,
+                                          self._content_rect.y + self._content_rect.height - 150,
+                                          136, 96))
 
     self._bookmark_icon.render(self.rect)
 

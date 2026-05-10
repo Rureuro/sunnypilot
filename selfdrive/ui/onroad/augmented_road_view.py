@@ -10,6 +10,7 @@ from openpilot.selfdrive.ui.onroad.driver_state import DriverStateRenderer
 from openpilot.selfdrive.ui.onroad.hud_renderer import HudRenderer
 from openpilot.selfdrive.ui.onroad.model_renderer import ModelRenderer
 from openpilot.selfdrive.ui.onroad.cameraview import CameraView
+from openpilot.selfdrive.ui.sunnypilot.onroad.mads_button import MadsButton
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.common.transformations.camera import DEVICE_CAMERAS, DeviceCameraConfig, view_frame_from_device_frame
 from openpilot.common.transformations.orientation import rot_from_euler
@@ -57,6 +58,7 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     self._hud_renderer = HudRenderer()
     self.alert_renderer = AlertRenderer()
     self.driver_state_renderer = DriverStateRenderer()
+    self._mads_button = self._child(MadsButton())
 
     # debug
     self._pm = messaging.PubMaster(['uiDebug'])
@@ -101,6 +103,9 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
 
     # Custom UI extension point - add custom overlays here
     # Use self._content_rect for positioning within camera bounds
+    self._mads_button.render(rl.Rectangle(self._content_rect.x + 42,
+                                          self._content_rect.y + self._content_rect.height - 154,
+                                          136, 96))
 
     # End clipping region
     rl.end_scissor_mode()
@@ -114,6 +119,8 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     self._pm.send('uiDebug', msg)
 
   def _handle_mouse_press(self, _):
+    if self._mads_button.is_pressed:
+      return
     if not self._hud_renderer.user_interacting() and self._click_callback is not None:
       self._click_callback()
 

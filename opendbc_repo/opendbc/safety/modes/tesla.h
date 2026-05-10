@@ -193,13 +193,6 @@ static void tesla_rx_hook(const CANPacket_t *msg) {
 
       pcm_cruise_check(cruise_engaged);
 
-      // Vehicle bus installations use UI_status2 below for the MADS button.
-      // Without vehicle bus access, use the AP/cruise request pulse as the
-      // MADS-only lateral request. Longitudinal enable remains tied to
-      // controls_allowed, not controls_allowed_lateral.
-      if (!tesla_has_vehicle_bus) {
-        mads_button_press = GET_BIT(msg, 36U) ? MADS_BUTTON_PRESSED : MADS_BUTTON_NOT_PRESSED;  // DI_autopilotRequest
-      }
     }
 
     if (msg->addr == 0x155U) {

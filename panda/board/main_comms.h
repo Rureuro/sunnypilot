@@ -335,6 +335,15 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
         UNUSED(ret);
       }
       break;
+    // **** 0xfd: host MADS button request
+    case 0xfd:
+      if (req->param1 == 2U) {
+        mads_exit_controls(MADS_DISENGAGE_REASON_BUTTON);
+        mads_button_press = MADS_BUTTON_NOT_PRESSED;
+      } else {
+        mads_button_press = (req->param1 == 1U) ? MADS_BUTTON_PRESSED : MADS_BUTTON_NOT_PRESSED;
+      }
+      break;
     default:
       print("NO HANDLER ");
       puth(req->request);

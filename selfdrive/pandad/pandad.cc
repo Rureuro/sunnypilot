@@ -1,5 +1,6 @@
 #include "selfdrive/pandad/pandad.h"
 
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <cassert>
@@ -390,11 +391,12 @@ void pandad_run(Panda *panda) {
 
   Params params;
   RateKeeper rk("pandad", 100);
-  SubMaster sm({"selfdriveState", "selfdriveStateSP"});
+  SubMaster sm({"selfdriveState", "selfdriveStateSP", "madsEnableButton", "madsDisableButton"});
   PubMaster pm({"can", "pandaStates", "peripheralState"});
   PandaSafety panda_safety(panda);
   bool engaged = false;
   bool engaged_mads = false;
+  int mads_button_pulse_frames = 0;
   bool is_onroad = false;
   bool always_offroad = false;
 
@@ -412,6 +414,15 @@ void pandad_run(Panda *panda) {
       sm.update(0);
       engaged = sm.allAliveAndValid({"selfdriveState"}) && sm["selfdriveState"].getSelfdriveState().getEnabled();
       engaged_mads = process_mads_heartbeat(&sm);
+      if (sm.updated("madsEnableButton")) {
+        mads_button_pulse_frames = 2;
+      }
+      if (sm.updated("madsDisableButton")) {
+        mads_button_pulse_frames = 0;
+        panda->exit_mads();
+      }
+      panda->set_mads_button(mads_button_pulse_frames > 0);
+      mads_button_pulse_frames = std::max(mads_button_pulse_frames - 1, 0);
       is_onroad = params.getBool("IsOnroad");
       always_offroad = panda_safety.getOffroadMode();
       process_panda_state(panda, &pm, engaged, engaged_mads, is_onroad, spoofing_started, always_offroad);

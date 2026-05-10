@@ -138,6 +138,14 @@ void Panda::send_heartbeat(bool engaged, bool engaged_mads) {
   handle->control_write(0xf3, engaged, engaged_mads);
 }
 
+void Panda::set_mads_button(bool pressed) {
+  handle->control_write(0xfd, pressed, 0);
+}
+
+void Panda::exit_mads() {
+  handle->control_write(0xfd, 2, 0);
+}
+
 void Panda::set_can_speed_kbps(uint16_t bus, uint16_t speed) {
   handle->control_write(0xde, bus, (speed * 10));
 }

@@ -1,6 +1,6 @@
 import copy
 from opendbc.can import CANDefine, CANParser
-from opendbc.car import Bus, create_button_events, structs
+from opendbc.car import Bus, structs
 from opendbc.car.carlog import carlog
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarStateBase
@@ -8,10 +8,6 @@ from opendbc.car.tesla.teslacan import get_steer_ctrl_type
 from opendbc.car.tesla.values import DBC, CANBUS, GEAR_MAP, STEER_THRESHOLD, TeslaFlags
 
 from opendbc.sunnypilot.car.tesla.carstate_ext import CarStateExt
-from opendbc.sunnypilot.car.tesla.values import TeslaFlagsSP
-
-ButtonType = structs.CarState.ButtonEvent.Type
-MADS_ONLY_PCM_ENABLE_BLOCK_FRAMES = 100
 
 
 class CarState(CarStateBase, CarStateExt):
@@ -29,8 +25,6 @@ class CarState(CarStateBase, CarStateExt):
 
     self.hands_on_level = 0
     self.das_control = None
-    self.autopilot_request = 0
-    self.mads_only_pcm_enable_block_frames = 0
 
   def update_autopark_state(self, autopark_state: str, cruise_enabled: bool):
     autopark_now = autopark_state in ("ACTIVE", "COMPLETE", "SELFPARK_STARTED")
@@ -141,19 +135,6 @@ class CarState(CarStateBase, CarStateExt):
         if not self.fsd14_error_logged:
           carlog.error("FSD 14 detected, but FW not in FSD_14_FW set")
           self.fsd14_error_logged = True
-
-    # Treat Tesla's AP/cruise request as the MADS/LKAS toggle when the vehicle bus
-    # 3-finger touch signal is unavailable. This is intentionally MADS-only:
-    # block PCM enable long enough for controlsd to cancel any stock cruise enable.
-    if not (self.CP_SP.flags & TeslaFlagsSP.HAS_VEHICLE_BUS):
-      prev_autopilot_request = self.autopilot_request
-      self.autopilot_request = int(di_state["DI_autopilotRequest"])
-      ret.buttonEvents = create_button_events(self.autopilot_request, prev_autopilot_request, {1: ButtonType.lkas})
-
-      if self.autopilot_request:
-        self.mads_only_pcm_enable_block_frames = MADS_ONLY_PCM_ENABLE_BLOCK_FRAMES
-      ret.blockPcmEnable = self.mads_only_pcm_enable_block_frames > 0
-      self.mads_only_pcm_enable_block_frames = max(self.mads_only_pcm_enable_block_frames - 1, 0)
 
     # Buttons # ToDo: add Gap adjust button
 

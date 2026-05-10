@@ -67,6 +67,8 @@ static std::map<std::string, service> services = {
   { "soundPressure", {"soundPressure", true, 10.000000, 10, 256000}},
   { "rawAudioData", {"rawAudioData", false, 20.000000, -1, 256000}},
   { "bookmarkButton", {"bookmarkButton", true, 0.000000, 1, 256000}},
+  { "madsEnableButton", {"madsEnableButton", true, 0.000000, 1, 256000}},
+  { "madsDisableButton", {"madsDisableButton", true, 0.000000, 1, 256000}},
   { "audioFeedback", {"audioFeedback", true, 0.000000, 1, 256000}},
   { "roadEncodeData", {"roadEncodeData", false, 20.000000, -1, 10485760}},
   { "driverEncodeData", {"driverEncodeData", false, 20.000000, -1, 10485760}},
@@ -97,4 +99,3 @@ static std::map<std::string, service> services = {
   { "customReservedRawData2", {"customReservedRawData2", true, 0.000000, -1, 256000}},
 };
 #endif
-
