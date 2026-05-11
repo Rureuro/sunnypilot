@@ -9,6 +9,10 @@ from opendbc.car.vehicle_model import VehicleModel
 from opendbc.sunnypilot.car.tesla.coop_steering import CoopSteeringCarController
 
 
+DRIVER_STEER_HANDS_ON_LEVEL = 2
+DRIVER_STEER_QUIET_FRAMES = 10  # require a stable release before re-enabling angle control
+
+
 def get_safety_CP():
   # We use the TESLA_MODEL_Y platform for lateral limiting to match safety
   # A Model 3 at 40 m/s using the Model Y limits sees a <0.3% difference in max angle (from curvature factor)
@@ -23,6 +27,7 @@ class CarController(CarControllerBase, CoopSteeringCarController):
     self.apply_angle_last = 0
     self.packer = CANPacker(dbc_names[Bus.party])
     self.tesla_can = TeslaCAN(CP, self.packer)
+    self.driver_steer_quiet_frames = DRIVER_STEER_QUIET_FRAMES
 
     # Vehicle model used for lateral limiting
     self.VM = VehicleModel(get_safety_CP())
@@ -33,14 +38,23 @@ class CarController(CarControllerBase, CoopSteeringCarController):
     can_sends = []
 
     # Tesla angle control does not blend with driver torque like torque-based LKAS.
-    # Keep MADS enabled, but yield steering commands as soon as driver torque is detected.
-    # Canceling is done on rising edge and is handled generically with CC.cruiseControl.cancel
-    lat_active = CC.latActive and not CS.out.steeringPressed and CS.hands_on_level < 3
+    # Keep MADS enabled, but only re-enable angle control after driver steering
+    # has been stably released so momentary steeringPressed drops do not chatter.
+    driver_steering = CS.out.steeringPressed or CS.hands_on_level >= DRIVER_STEER_HANDS_ON_LEVEL
+    if driver_steering:
+      self.driver_steer_quiet_frames = 0
+    else:
+      self.driver_steer_quiet_frames = min(self.driver_steer_quiet_frames + 1, DRIVER_STEER_QUIET_FRAMES)
+
+    lat_active = CC.latActive and self.driver_steer_quiet_frames >= DRIVER_STEER_QUIET_FRAMES
 
     if self.frame % 2 == 0:
-      # Angular rate limit based on speed
-      self.apply_angle_last = apply_steer_angle_limits_vm(actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgoRaw, CS.out.steeringAngleDeg,
-                                                          lat_active, CarControllerParams, self.VM)
+      if lat_active:
+        # Angular rate limit based on speed
+        self.apply_angle_last = apply_steer_angle_limits_vm(actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgoRaw, CS.out.steeringAngleDeg,
+                                                            True, CarControllerParams, self.VM)
+      else:
+        self.apply_angle_last = CS.out.steeringAngleDeg
 
       can_sends.append(self.tesla_can.create_steering_control(self.apply_angle_last, lat_active, self.coop_steering.control_type))
 

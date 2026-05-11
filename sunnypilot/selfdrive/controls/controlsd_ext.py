@@ -19,6 +19,9 @@ from openpilot.sunnypilot.selfdrive.controls.lib.blinker_pause_lateral import Bl
 from openpilot.sunnypilot.selfdrive.controls.lib.latcontrol_torque_v0 import LatControlTorque as LatControlTorqueV0
 
 
+TESLA_DRIVER_STEER_QUIET_FRAMES = 10
+
+
 class ControlsExt(ModelStateBase):
   def __init__(self, CP: structs.CarParams, params: Params):
     ModelStateBase.__init__(self)
@@ -26,6 +29,8 @@ class ControlsExt(ModelStateBase):
     self.params = params
     self._param_update_time: float = 0.0
     self.blinker_pause_lateral = BlinkerPauseLateral()
+    self.tesla_driver_steer_quiet_frames = TESLA_DRIVER_STEER_QUIET_FRAMES
+    self.tesla_driver_steer_last_frame = -1
 
     cloudlog.info("controlsd_ext is waiting for CarParamsSP")
     self.CP_SP = messaging.log_from_bytes(params.get("CarParamsSP", block=True), custom.CarParamsSP)
@@ -57,8 +62,22 @@ class ControlsExt(ModelStateBase):
       self._param_update_time = time.monotonic()
 
   def get_lat_active(self, sm: messaging.SubMaster) -> bool:
-    if self.blinker_pause_lateral.update(sm['carState']):
+    CS = sm['carState']
+
+    if self.blinker_pause_lateral.update(CS):
       return False
+
+    if self.CP.brand == "tesla":
+      driver_steering = CS.steeringPressed or CS.steeringDisengage
+      if sm.recv_frame['carState'] != self.tesla_driver_steer_last_frame:
+        if driver_steering:
+          self.tesla_driver_steer_quiet_frames = 0
+        else:
+          self.tesla_driver_steer_quiet_frames = min(self.tesla_driver_steer_quiet_frames + 1, TESLA_DRIVER_STEER_QUIET_FRAMES)
+        self.tesla_driver_steer_last_frame = sm.recv_frame['carState']
+
+      if driver_steering or self.tesla_driver_steer_quiet_frames < TESLA_DRIVER_STEER_QUIET_FRAMES:
+        return False
 
     ss_sp = sm['selfdriveStateSP']
     if ss_sp.mads.available:
