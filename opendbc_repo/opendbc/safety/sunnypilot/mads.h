@@ -48,6 +48,7 @@ inline void m_mads_state_init(void) {
   m_mads_state.system_enabled = false;
   m_mads_state.disengage_lateral_on_brake = false;
   m_mads_state.pause_lateral_on_brake = false;
+  m_mads_state.remain_active_on_steering = false;
 
   m_mads_state.acc_main.previous = false;
   m_mads_state.acc_main.transition = MADS_EDGE_NO_CHANGE;
@@ -96,7 +97,8 @@ inline void m_update_control_state(void) {
     allowed = false;  // No matter what, no further control processing on this cycle
   }
 
-  if (m_mads_state.mads_steering_disengage.transition == MADS_EDGE_RISING) {
+  if (!m_mads_state.remain_active_on_steering &&
+      (m_mads_state.mads_steering_disengage.transition == MADS_EDGE_RISING)) {
     mads_exit_controls(MADS_DISENGAGE_REASON_STEERING_DISENGAGE);
     allowed = false;  // No matter what, no further control processing on this cycle
   }
@@ -152,8 +154,10 @@ inline void mads_set_alternative_experience(const int *mode) {
   const bool mads_enabled = (*mode & ALT_EXP_ENABLE_MADS) != 0;
   const bool disengage_lateral_on_brake = (*mode & ALT_EXP_MADS_DISENGAGE_LATERAL_ON_BRAKE) != 0;
   const bool pause_lateral_on_brake = (*mode & ALT_EXP_MADS_PAUSE_LATERAL_ON_BRAKE) != 0;
+  const bool remain_active_on_steering = (*mode & ALT_EXP_MADS_REMAIN_ACTIVE_ON_STEERING) != 0;
 
   mads_set_system_state(mads_enabled, disengage_lateral_on_brake, pause_lateral_on_brake);
+  m_mads_state.remain_active_on_steering = remain_active_on_steering;
 }
 
 extern inline void mads_set_system_state(const bool enabled, const bool disengage_lateral_on_brake, const bool pause_lateral_on_brake) {

@@ -41,6 +41,9 @@ def set_alternative_experience(CP: structs.CarParams, CP_SP: structs.CarParamsSP
   if enabled:
     CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.ENABLE_MADS
 
+    if CP.brand == "tesla":
+      CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.MADS_REMAIN_ACTIVE_ON_STEERING
+
     if steering_mode == MadsSteeringModeOnBrake.DISENGAGE:
       CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.MADS_DISENGAGE_LATERAL_ON_BRAKE
     elif steering_mode == MadsSteeringModeOnBrake.PAUSE:

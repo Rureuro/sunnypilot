@@ -10,6 +10,7 @@ from opendbc.car.tesla.carcontroller import get_safety_CP
 from opendbc.car.structs import CarParams
 from opendbc.car.vehicle_model import VehicleModel
 from opendbc.can import CANDefine
+from opendbc.safety import ALTERNATIVE_EXPERIENCE
 from opendbc.safety.tests.libsafety import libsafety_py
 import opendbc.safety.tests.common as common
 from opendbc.safety.tests.common import CANPackerSafety, MAX_SPEED_DELTA, MAX_WRONG_COUNTERS, away_round, round_speed
@@ -244,6 +245,27 @@ class TestTeslaSafetyBase(common.CarSafetyTest, common.AngleSteeringSafetyTest, 
     self.assertFalse(self.safety.get_controls_allowed_lateral())
     self.assertFalse(self.safety.get_controls_allowed())
     self.assertFalse(self.safety.get_longitudinal_allowed())
+
+  def test_mads_steering_override_remains_lateral_enabled(self):
+    self.safety.mads_apply_alternative_experience(
+      ALTERNATIVE_EXPERIENCE.ENABLE_MADS | ALTERNATIVE_EXPERIENCE.MADS_REMAIN_ACTIVE_ON_STEERING
+    )
+    self.safety.set_controls_allowed(False)
+
+    self.safety.set_mads_button_press(0)
+    self.assertTrue(self._rx(self._pcm_status_msg(False)))
+    self.safety.set_mads_button_press(1)
+    self.assertTrue(self._rx(self._pcm_status_msg(False)))
+    self.assertTrue(self.safety.get_controls_allowed_lateral())
+
+    self.assertTrue(self._rx(self._angle_meas_msg(0, hands_on_level=3, eac_status=1, eac_error_code=0)))
+    self.assertFalse(self.safety.get_controls_allowed())
+    self.assertTrue(self.safety.get_controls_allowed_lateral())
+    self.assertTrue(self.safety.get_steering_disengage_prev())
+
+    self.assertTrue(self._rx(self._angle_meas_msg(0, hands_on_level=0, eac_status=1, eac_error_code=0)))
+    self.assertTrue(self.safety.get_controls_allowed_lateral())
+    self.assertFalse(self.safety.get_steering_disengage_prev())
 
   def test_steering_wheel_disengage(self):
     # Tesla disengages when the user forcibly overrides the locked-in angle steering control

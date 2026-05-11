@@ -391,11 +391,12 @@ void pandad_run(Panda *panda) {
 
   Params params;
   RateKeeper rk("pandad", 100);
-  SubMaster sm({"selfdriveState", "selfdriveStateSP", "madsEnableButton", "madsDisableButton"});
+  SubMaster sm({"selfdriveState", "selfdriveStateSP", "madsDisableButton"});
   PubMaster pm({"can", "pandaStates", "peripheralState"});
   PandaSafety panda_safety(panda);
   bool engaged = false;
   bool engaged_mads = false;
+  bool engaged_mads_prev = false;
   int mads_button_pulse_frames = 0;
   bool is_onroad = false;
   bool always_offroad = false;
@@ -414,8 +415,8 @@ void pandad_run(Panda *panda) {
       sm.update(0);
       engaged = sm.allAliveAndValid({"selfdriveState"}) && sm["selfdriveState"].getSelfdriveState().getEnabled();
       engaged_mads = process_mads_heartbeat(&sm);
-      if (sm.updated("madsEnableButton")) {
-        mads_button_pulse_frames = 2;
+      if (engaged_mads && !engaged_mads_prev) {
+        mads_button_pulse_frames = 3;
       }
       if (sm.updated("madsDisableButton")) {
         mads_button_pulse_frames = 0;
@@ -427,6 +428,7 @@ void pandad_run(Panda *panda) {
       always_offroad = panda_safety.getOffroadMode();
       process_panda_state(panda, &pm, engaged, engaged_mads, is_onroad, spoofing_started, always_offroad);
       panda_safety.configureSafetyMode(is_onroad);
+      engaged_mads_prev = engaged_mads;
     }
 
     // Send out peripheralState at 2Hz
