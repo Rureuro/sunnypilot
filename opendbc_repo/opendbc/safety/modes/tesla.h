@@ -202,7 +202,7 @@ static void tesla_rx_hook(const CANPacket_t *msg) {
 
   if (msg->bus == 1U) {
     if (msg->addr == 0x3DFU) {
-      mads_button_press = (msg->data[3] == 3U) ? MADS_BUTTON_PRESSED : MADS_BUTTON_NOT_PRESSED;
+      vehicle_mads_button_press = (msg->data[3] == 3U) ? MADS_BUTTON_PRESSED : MADS_BUTTON_NOT_PRESSED;
     }
   }
 

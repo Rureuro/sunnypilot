@@ -89,6 +89,7 @@ typedef struct {
 // ===============================
 
 extern ButtonState mads_button_press;
+extern ButtonState vehicle_mads_button_press;
 extern MADSState m_mads_state;
 
 extern bool controls_allowed_lateral;
@@ -112,6 +113,7 @@ extern void mads_heartbeat_engaged_check(void);
 // These are really only used internally.
 // ===============================
 extern EdgeTransition m_get_edge_transition(bool current, bool last);
+extern ButtonState m_get_combined_mads_button(void);
 extern void m_mads_state_init(void);
 extern void m_update_button_state(ButtonStateTracking *button_state);
 extern void m_update_binary_state(BinaryStateTracking *state);

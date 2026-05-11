@@ -14,6 +14,7 @@
 // ===============================
 
 ButtonState mads_button_press = MADS_BUTTON_UNAVAILABLE;
+ButtonState vehicle_mads_button_press = MADS_BUTTON_UNAVAILABLE;
 MADSState m_mads_state;
 
 bool controls_allowed_lateral = false;
@@ -40,10 +41,21 @@ inline EdgeTransition m_get_edge_transition(const bool current, const bool last)
   return state;
 }
 
+inline ButtonState m_get_combined_mads_button(void) {
+  if ((mads_button_press == MADS_BUTTON_PRESSED) || (vehicle_mads_button_press == MADS_BUTTON_PRESSED)) {
+    return MADS_BUTTON_PRESSED;
+  }
+  if ((mads_button_press == MADS_BUTTON_NOT_PRESSED) || (vehicle_mads_button_press == MADS_BUTTON_NOT_PRESSED)) {
+    return MADS_BUTTON_NOT_PRESSED;
+  }
+  return MADS_BUTTON_UNAVAILABLE;
+}
+
 inline void m_mads_state_init(void) {
   m_mads_state.is_vehicle_moving = NULL;
   m_mads_state.acc_main.current = NULL;
   m_mads_state.mads_button.current = MADS_BUTTON_UNAVAILABLE;
+  vehicle_mads_button_press = MADS_BUTTON_UNAVAILABLE;
 
   m_mads_state.system_enabled = false;
   m_mads_state.disengage_lateral_on_brake = false;
@@ -182,7 +194,7 @@ inline void mads_state_update(const bool op_vehicle_moving, const bool op_acc_ma
   m_mads_state.is_vehicle_moving = op_vehicle_moving;
   m_mads_state.acc_main.current = op_acc_main;
   m_mads_state.op_controls_allowed.current = op_allowed;
-  m_mads_state.mads_button.current = mads_button_press;
+  m_mads_state.mads_button.current = m_get_combined_mads_button();
   m_mads_state.braking.current = is_braking;
   m_mads_state.mads_steering_disengage.current = _steering_disengage;
 

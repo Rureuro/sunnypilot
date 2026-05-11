@@ -529,6 +529,20 @@ class TestTeslaVehicleBusSafety(TestTeslaSafetyBase):
     values = {"UI_activeTouchPoints": 3 if enabled else 0}
     return self.packer_adas.make_can_msg_safety("UI_status2", CANBUS.vehicle, values)
 
+  def test_host_mads_button_not_overwritten_by_vehicle_bus(self):
+    self.safety.set_mads_params(True, False, False)
+    self.safety.set_controls_allowed(False)
+
+    self.safety.set_mads_button_press(0)
+    self.assertTrue(self._rx(self._lkas_button_msg(False)))
+    self.assertFalse(self.safety.get_controls_allowed_lateral())
+
+    self.safety.set_mads_button_press(1)
+    self.assertTrue(self._rx(self._lkas_button_msg(False)))
+
+    self.assertTrue(self.safety.get_controls_allowed_lateral())
+    self.assertFalse(self.safety.get_controls_allowed())
+
 
 if __name__ == "__main__":
   unittest.main()

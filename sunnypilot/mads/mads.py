@@ -83,7 +83,7 @@ class ModularAssistiveDrivingSystem:
       return True
 
     if self.enabled:
-      return True
+      return self.CP.brand != "tesla"
 
     if self.selfdrive.enabled and self.selfdrive.enabled_prev:
       return True
