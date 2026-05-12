@@ -30,6 +30,12 @@ NO_THROTTLE_COLORS = [
   rl.Color(242, 242, 242, 0),   # HSLF(112/360, 0.0, 0.95, 0.0)
 ]
 
+STEER_OVERRIDE_COLORS = [
+  rl.Color(255, 205, 0, 130),
+  rl.Color(255, 165, 0, 95),
+  rl.Color(255, 165, 0, 0),
+]
+
 LANE_LINE_COLORS = {
   UIStatus.DISENGAGED: rl.Color(200, 200, 200, 255),
   UIStatus.OVERRIDE: rl.Color(255, 255, 255, 255),
@@ -341,6 +347,16 @@ class ModelRenderer(Widget, ModelRendererSP):
     allow_throttle = sm['longitudinalPlan'].allowThrottle or not self._longitudinal_control
     self._blend_filter.update(int(allow_throttle))
 
+    if self._steer_override_path_active(sm):
+      gradient = Gradient(
+        start=(0.0, 1.0),
+        end=(0.0, 0.0),
+        colors=STEER_OVERRIDE_COLORS,
+        stops=[0.0, 0.5, 1.0],
+      )
+      draw_polygon(self._rect, self._path.projected_points, gradient=gradient)
+      return
+
     if ui_state.rainbow_path:
       self.rainbow_path.draw_rainbow_path(self._rect, self._path)
       return
@@ -377,6 +393,10 @@ class ModelRenderer(Widget, ModelRendererSP):
 
       rl.draw_triangle_fan(lead.glow, len(lead.glow), rl.Color(218, 202, 37, 255))
       rl.draw_triangle_fan(lead.chevron, len(lead.chevron), rl.Color(201, 34, 49, lead.fill_alpha))
+
+  @staticmethod
+  def _steer_override_path_active(sm) -> bool:
+    return ui_state.CP is not None and ui_state.CP.brand == "tesla" and sm['selfdriveStateSP'].mads.enabled and sm['carState'].steeringPressed
 
   @staticmethod
   def _get_path_length_idx(pos_x_array: np.ndarray, path_height: float) -> int:

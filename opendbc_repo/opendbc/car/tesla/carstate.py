@@ -10,6 +10,10 @@ from opendbc.car.tesla.values import DBC, CANBUS, GEAR_MAP, STEER_THRESHOLD, Tes
 from opendbc.sunnypilot.car.tesla.carstate_ext import CarStateExt
 
 
+DRIVER_STEER_HANDS_ON_LEVEL = 2
+DRIVER_STEER_KEEPALIVE_HANDS_ON_LEVEL = 1
+
+
 class CarState(CarStateBase, CarStateExt):
   def __init__(self, CP, CP_SP):
     CarStateBase.__init__(self, CP, CP_SP)
@@ -24,6 +28,7 @@ class CarState(CarStateBase, CarStateExt):
     self.suspected_fsd14 = False
 
     self.hands_on_level = 0
+    self.driver_steering_latched = False
     self.das_control = None
 
   def update_autopark_state(self, autopark_state: str, cruise_enabled: bool):
@@ -59,8 +64,15 @@ class CarState(CarStateBase, CarStateExt):
     ret.steeringRateDeg = -cp_ap_party.vl["SCCM_steeringAngleSensor"]["SCCM_steeringAngleSpeed"]
     ret.steeringTorque = -epas_status["EPAS3S_torsionBarTorque"]
 
-    # Use torque for fast override detection and handsOnLevel for sustained manual steering holds.
-    ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > STEER_THRESHOLD or self.hands_on_level >= 2, 5)
+    # Use torque for fast override detection, then keep the override latched
+    # while Tesla still reports light hands-on contact.
+    driver_steering_now = abs(ret.steeringTorque) > STEER_THRESHOLD or self.hands_on_level >= DRIVER_STEER_HANDS_ON_LEVEL
+    if driver_steering_now:
+      self.driver_steering_latched = True
+    elif self.hands_on_level < DRIVER_STEER_KEEPALIVE_HANDS_ON_LEVEL:
+      self.driver_steering_latched = False
+
+    ret.steeringPressed = self.update_steering_pressed(driver_steering_now or self.driver_steering_latched, 5)
 
     eac_status = self.can_define.dv["EPAS3S_sysStatus"]["EPAS3S_eacStatus"].get(int(epas_status["EPAS3S_eacStatus"]), None)
     ret.steerFaultPermanent = eac_status == "EAC_FAULT"

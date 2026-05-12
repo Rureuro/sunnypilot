@@ -10,6 +10,7 @@ from opendbc.sunnypilot.car.tesla.coop_steering import CoopSteeringCarController
 
 
 DRIVER_STEER_HANDS_ON_LEVEL = 2
+DRIVER_STEER_KEEPALIVE_HANDS_ON_LEVEL = 1
 DRIVER_STEER_QUIET_FRAMES = 10  # require a stable release before re-enabling angle control
 
 
@@ -27,6 +28,7 @@ class CarController(CarControllerBase, CoopSteeringCarController):
     self.apply_angle_last = 0
     self.packer = CANPacker(dbc_names[Bus.party])
     self.tesla_can = TeslaCAN(CP, self.packer)
+    self.driver_steering_latched = False
     self.driver_steer_quiet_frames = DRIVER_STEER_QUIET_FRAMES
 
     # Vehicle model used for lateral limiting
@@ -40,7 +42,13 @@ class CarController(CarControllerBase, CoopSteeringCarController):
     # Tesla angle control does not blend with driver torque like torque-based LKAS.
     # Keep MADS enabled, but only re-enable angle control after driver steering
     # has been stably released so momentary steeringPressed drops do not chatter.
-    driver_steering = CS.out.steeringPressed or CS.hands_on_level >= DRIVER_STEER_HANDS_ON_LEVEL
+    driver_steering_now = CS.out.steeringPressed or CS.hands_on_level >= DRIVER_STEER_HANDS_ON_LEVEL
+    if driver_steering_now:
+      self.driver_steering_latched = True
+    elif CS.hands_on_level < DRIVER_STEER_KEEPALIVE_HANDS_ON_LEVEL:
+      self.driver_steering_latched = False
+
+    driver_steering = driver_steering_now or self.driver_steering_latched
     if driver_steering:
       self.driver_steer_quiet_frames = 0
     else:
