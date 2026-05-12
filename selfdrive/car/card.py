@@ -28,6 +28,16 @@ REPLAY = "REPLAY" in os.environ
 
 EventName = log.OnroadEvent.EventName
 
+DEFAULT_CAR_PLATFORM_BUNDLE = {
+  "name": "Tesla Model Y (with HW4) 2024-25",
+  "platform": "TESLA_MODEL_Y",
+  "make": "Tesla",
+  "brand": "tesla",
+  "model": "Model Y (with HW4)",
+  "year": ["2024", "2025"],
+  "package": "All",
+}
+
 # forward
 carlog.addHandler(ForwardingHandler(cloudlog))
 
@@ -105,7 +115,12 @@ class Car:
         with car.CarParams.from_bytes(cached_params_raw) as _cached_params:
           cached_params = _cached_params
 
-      fixed_fingerprint = (self.params.get("CarPlatformBundle") or {}).get("platform", None)
+      car_platform_bundle = self.params.get("CarPlatformBundle")
+      if car_platform_bundle is None:
+        car_platform_bundle = DEFAULT_CAR_PLATFORM_BUNDLE
+        self.params.put("CarPlatformBundle", car_platform_bundle)
+
+      fixed_fingerprint = car_platform_bundle.get("platform", None)
       init_params_list_sp = sunnypilot_interfaces.initialize_params(self.params)
 
       self.CI = get_car(*self.can_callbacks, obd_callback(self.params), alpha_long_allowed, is_release, cached_params,
