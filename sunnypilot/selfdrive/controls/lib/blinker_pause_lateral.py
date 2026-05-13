@@ -26,7 +26,7 @@ class BlinkerPauseLateral:
     self.min_speed = self.params.get("BlinkerMinLateralControlSpeed", return_default=True)
     self.reengage_delay = self.params.get("BlinkerLateralReengageDelay", return_default=True)
 
-  def update(self, CS: car.CarState, DT_CTRL: float = 0.01) -> bool:
+  def update(self, CS: car.CarState, DT_CTRL: float = 0.01, pause_at_any_speed: bool = False) -> bool:
     if not self.enabled:
       return False
 
@@ -34,7 +34,7 @@ class BlinkerPauseLateral:
     speed_factor = CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS
     min_speed_ms = self.min_speed * speed_factor
 
-    below_speed = CS.vEgo < min_speed_ms
+    below_speed = pause_at_any_speed or CS.vEgo < min_speed_ms
 
     if one_blinker and below_speed:
       self.blinker_off_timer = self.reengage_delay

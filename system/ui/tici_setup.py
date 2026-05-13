@@ -31,6 +31,7 @@ BUTTON_HEIGHT = 160
 BUTTON_SPACING = 50
 
 OPENPILOT_URL = "https://openpilot.comma.ai"
+CUSTOM_SOFTWARE_URL = "https://install.sunnypilot.ai/fork/Rureuro/tesla-mads-only"
 USER_AGENT = f"AGNOSSetup-{HARDWARE.get_os_version()}"
 
 INSTALLER_DESTINATION_PATH = "/tmp/installer"
@@ -328,6 +329,7 @@ class Setup(Widget):
 
     self.keyboard.reset(min_text_size=1)
     self.keyboard.set_title("Enter URL", "for Custom Software")
+    self.keyboard.set_text(CUSTOM_SOFTWARE_URL)
     self.keyboard.set_callback(handle_keyboard_result)
     gui_app.push_widget(self.keyboard)
 

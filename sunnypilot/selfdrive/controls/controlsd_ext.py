@@ -64,7 +64,7 @@ class ControlsExt(ModelStateBase):
   def get_lat_active(self, sm: messaging.SubMaster) -> bool:
     CS = sm['carState']
 
-    if self.blinker_pause_lateral.update(CS):
+    if self.blinker_pause_lateral.update(CS, pause_at_any_speed=self.CP.brand == "tesla"):
       return False
 
     if self.CP.brand == "tesla":

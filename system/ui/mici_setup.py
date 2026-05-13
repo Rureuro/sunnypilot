@@ -33,6 +33,7 @@ from openpilot.selfdrive.ui.mici.widgets.button import BigButton, GreyBigButton
 NetworkType = log.DeviceState.NetworkType
 
 OPENPILOT_URL = "https://openpilot.comma.ai"
+CUSTOM_SOFTWARE_URL = "https://install.sunnypilot.ai/fork/Rureuro/tesla-mads-only"
 USER_AGENT = f"AGNOSSetup-{HARDWARE.get_os_version()}"
 
 INSTALLER_DESTINATION_PATH = "/tmp/installer"
@@ -492,7 +493,8 @@ class Setup(Widget):
         if url:
           self._download(url)
 
-      keyboard = BigInputDialog("custom software URL...", confirm_callback=handle_keyboard_result, auto_return_to_letters="./")
+      keyboard = BigInputDialog("custom software URL...", default_text=CUSTOM_SOFTWARE_URL,
+                                confirm_callback=handle_keyboard_result, auto_return_to_letters="./")
       gui_app.push_widget(keyboard)
 
   def _download(self, url: str):

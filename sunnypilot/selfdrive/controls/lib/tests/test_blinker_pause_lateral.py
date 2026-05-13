@@ -71,6 +71,24 @@ class TestBlinkerPauseLateral:
     }
     self._test_should_blinker_pause_lateral(expected_results)
 
+  def test_pause_at_any_speed_blinker(self):
+    self.CS.vEgo = 31.3  # ~70 MPH
+
+    expected_results = {
+      (False, False): False,
+      (True, False): True,
+      (False, True): True,
+      (True, True): False
+    }
+
+    for left in (True, False):
+      for right in (True, False):
+        self.CS.leftBlinker = left
+        self.CS.rightBlinker = right
+
+        result = self.blinker_pause_lateral.update(self.CS, pause_at_any_speed=True)
+        assert result == expected_results[(left, right)]
+
   def test_just_below_min_speed(self):
     self.CS.vEgo = (20 * CV.MPH_TO_MS) - 0.01
 
