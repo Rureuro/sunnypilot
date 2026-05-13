@@ -242,11 +242,14 @@ class TrainingGuideRecordFront(NavScroller):
 
 
 class TrainingGuideAttentionNotice(Scroller):
-  def __init__(self, continue_callback: Callable[[], None]):
+  def __init__(self, continue_callback: Callable[[], None], skip_callback: Callable[[], None]):
     super().__init__()
 
     continue_button = BigPillButton("next")
     continue_button.set_click_callback(continue_callback)
+
+    skip_button = BigPillButton("skip guide", green=False)
+    skip_button.set_click_callback(skip_callback)
 
     self._scroller.add_widgets([
       GreyBigButton("what is sunnypilot?", "scroll to continue",
@@ -256,6 +259,7 @@ class TrainingGuideAttentionNotice(Scroller):
       GreyBigButton("", "3. You must be ready to take over at any time."),
       GreyBigButton("", "4. You are fully responsible for driving the car."),
       continue_button,
+      skip_button,
     ])
 
 
@@ -264,7 +268,8 @@ class TrainingGuide(NavWidget):
     super().__init__()
 
     self._steps = [
-      TrainingGuideAttentionNotice(continue_callback=lambda: gui_app.push_widget(self._steps[1])),
+      TrainingGuideAttentionNotice(continue_callback=lambda: gui_app.push_widget(self._steps[1]),
+                                   skip_callback=completed_callback),
       TrainingGuidePreDMTutorial(continue_callback=lambda: gui_app.push_widget(self._steps[2])),
       TrainingGuideDMTutorial(continue_callback=lambda: gui_app.push_widget(self._steps[3])),
       TrainingGuideRecordFront(continue_callback=completed_callback),

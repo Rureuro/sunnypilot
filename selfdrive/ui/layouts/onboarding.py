@@ -42,6 +42,7 @@ class TrainingGuide(Widget):
   def __init__(self, completed_callback=None):
     super().__init__()
     self._completed_callback = completed_callback
+    self._skip_btn = Button(tr("Skip"), click_callback=self._complete_training)
 
     self._step = 0
     self._load_image_paths()
@@ -56,6 +57,12 @@ class TrainingGuide(Widget):
     paths = [fn for fn in os.listdir(os.path.join(BASEDIR, "selfdrive/assets/training")) if re.match(r'^step\d*\.png$', fn)]
     paths = sorted(paths, key=lambda x: int(re.search(r'\d+', x).group()))
     self._image_paths = [os.path.join(BASEDIR, "selfdrive/assets/training", fn) for fn in paths]
+
+  def _complete_training(self):
+    self._step = 0
+    if self._completed_callback:
+      self._completed_callback()
+    gui_app.pop_widget()
 
   def _preload_thread(self):
     # PNG loading is slow in raylib, so we preload in a thread and upload to GPU in main thread
@@ -80,12 +87,7 @@ class TrainingGuide(Widget):
 
       # Finished?
       if self._step >= len(self._image_paths):
-        self._step = 0
-        if self._completed_callback:
-          self._completed_callback()
-
-        # NOTE: this pops OnboardingWindow during real onboarding
-        gui_app.pop_widget()
+        self._complete_training()
 
   def _update_state(self):
     if len(self._image_objs):
@@ -102,6 +104,8 @@ class TrainingGuide(Widget):
       w = int((step / (len(STEP_RECTS) - 1)) * self._rect.width)
       rl.draw_rectangle(int(self._rect.x), int(self._rect.y + self._rect.height - h),
                         w, h, rl.Color(70, 91, 234, 255))
+
+    self._skip_btn.render(rl.Rectangle(self._rect.width - 245, 45, 200, 100))
 
     if DEBUG:
       rl.draw_rectangle_lines_ex(STEP_RECTS[step], 3, rl.RED)
