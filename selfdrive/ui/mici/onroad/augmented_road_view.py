@@ -257,8 +257,8 @@ class AugmentedRoadView(CameraView):
     # Use self._content_rect for positioning within camera bounds
     self._confidence_ball.render(self.rect)
 
-    self._mads_button.render(rl.Rectangle(self._content_rect.x + 36,
-                                          self._content_rect.y + self._content_rect.height - 150,
+    self._mads_button.render(rl.Rectangle(self._content_rect.x + 16,
+                                          self._content_rect.y + self._content_rect.height - 132,
                                           136, 96))
 
     self._bookmark_icon.render(self.rect)

@@ -104,8 +104,10 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
 
     # Custom UI extension point - add custom overlays here
     # Use self._content_rect for positioning within camera bounds
-    self._mads_button.render(rl.Rectangle(self._content_rect.x + 42,
-                                          self._content_rect.y + self._content_rect.height - 154,
+    mads_button_width = 136
+    mads_button_x = self._content_rect.x + UI_BORDER_SIZE + (192 - mads_button_width) / 2
+    self._mads_button.render(rl.Rectangle(mads_button_x,
+                                          self._content_rect.y + self._content_rect.height - 352,
                                           136, 96))
 
     # End clipping region
