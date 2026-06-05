@@ -11,16 +11,23 @@ class MadsButton(Widget):
     self._pm = messaging.PubMaster(["madsEnableButton", "madsDisableButton"])
     self._click_delay = 0.12
 
-  def _update_state(self):
+  @staticmethod
+  def available() -> bool:
     mads = ui_state.sm["selfdriveStateSP"].mads
     tesla = ui_state.CP is not None and ui_state.CP.brand == "tesla"
-    self.set_visible(ui_state.started and tesla and mads.available)
+    return ui_state.started and tesla and mads.available
 
-  def _handle_mouse_release(self, mouse_pos):
+  def _update_state(self):
+    self.set_visible(self.available())
+
+  def toggle(self):
     service = "madsDisableButton" if ui_state.sm["selfdriveStateSP"].mads.enabled else "madsEnableButton"
     msg = messaging.new_message(service)
     msg.valid = True
     self._pm.send(service, msg)
+
+  def _handle_mouse_release(self, mouse_pos):
+    self.toggle()
     super()._handle_mouse_release(mouse_pos)
 
   def _render(self, rect):

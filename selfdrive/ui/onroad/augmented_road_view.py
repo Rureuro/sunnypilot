@@ -59,6 +59,7 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     self.alert_renderer = AlertRenderer()
     self.driver_state_renderer = DriverStateRenderer()
     self._mads_button = self._child(MadsButton())
+    self._set_speed_menu_pressed = False
 
     # debug
     self._pm = messaging.PubMaster(['uiDebug'])
@@ -118,15 +119,27 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     msg.uiDebug.drawTimeMillis = (time.monotonic() - start_draw) * 1000
     self._pm.send('uiDebug', msg)
 
-  def _handle_mouse_press(self, _):
+  def _handle_mouse_press(self, mouse_pos):
+    self._set_speed_menu_pressed = False
     if self._mads_button.is_pressed:
       return
-    if not self._hud_renderer.user_interacting() and self._click_callback is not None:
+    if self._hud_renderer.set_speed_contains(mouse_pos) and self._click_callback is not None:
+      self._set_speed_menu_pressed = True
+      self._click_callback()
+      return
+    if not self._mads_button.available() and not self._hud_renderer.user_interacting() and self._click_callback is not None:
       self._click_callback()
 
-  def _handle_mouse_release(self, _):
-    # We only call click callback on press if not interacting with HUD
-    pass
+  def _handle_mouse_release(self, _mouse_pos):
+    if self._set_speed_menu_pressed:
+      self._set_speed_menu_pressed = False
+      return
+    if self._mads_button.is_pressed:
+      return
+    if self._hud_renderer.user_interacting():
+      return
+    if self._mads_button.available():
+      self._mads_button.toggle()
 
   def _draw_border(self, rect: rl.Rectangle):
     rl.draw_rectangle_lines_ex(rect, UI_BORDER_SIZE, rl.BLACK)

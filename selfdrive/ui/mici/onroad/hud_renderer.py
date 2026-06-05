@@ -126,6 +126,7 @@ class HudRenderer(Widget):
     self._wheel_y_filter = FirstOrderFilter(0, 0.1, 1 / gui_app.target_fps)
 
     self._set_speed_alpha_filter = FirstOrderFilter(0.0, 0.1, 1 / gui_app.target_fps)
+    self._set_speed_rect: rl.Rectangle | None = None
 
   def set_wheel_critical_icon(self, critical: bool):
     """Set the wheel icon to critical or normal state."""
@@ -138,6 +139,9 @@ class HudRenderer(Widget):
   def drawing_top_icons(self) -> bool:
     # whether we're drawing any top icons currently
     return bool(self._set_speed_alpha_filter.x > 1e-2)
+
+  def set_speed_contains(self, mouse_pos) -> bool:
+    return self._set_speed_rect is not None and rl.check_collision_point_rec(mouse_pos, self._set_speed_rect)
 
   def _update_state(self) -> None:
     """Update HUD state based on car state and controls state."""
@@ -228,10 +232,12 @@ class HudRenderer(Widget):
     alpha = self._set_speed_alpha_filter.update(0 < rl.get_time() - self._set_speed_changed_time < SET_SPEED_PERSISTENCE and
                                                 self._can_draw_top_icons and self._engaged)
     if alpha < 1e-2:
+      self._set_speed_rect = None
       return
 
     x = rect.x
     y = rect.y
+    self._set_speed_rect = rl.Rectangle(x, y, 162, 162)
 
     # draw drop shadow
     circle_radius = 162 // 2

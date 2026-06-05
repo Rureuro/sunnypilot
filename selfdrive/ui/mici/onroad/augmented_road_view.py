@@ -187,8 +187,15 @@ class AugmentedRoadView(CameraView):
 
   def _handle_mouse_release(self, mouse_pos: MousePos):
     # Don't trigger click callback if bookmark was triggered
-    if not self._bookmark_icon.interacting() and not self._mads_button.is_pressed:
+    if self._bookmark_icon.interacting() or self._mads_button.is_pressed:
+      return
+    if self._hud_renderer.set_speed_contains(mouse_pos):
       super()._handle_mouse_release(mouse_pos)
+      return
+    if self._mads_button.available():
+      self._mads_button.toggle()
+      return
+    super()._handle_mouse_release(mouse_pos)
 
   def _render(self, _):
     start_draw = time.monotonic()
