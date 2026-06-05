@@ -121,11 +121,18 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     msg.uiDebug.drawTimeMillis = (time.monotonic() - start_draw) * 1000
     self._pm.send('uiDebug', msg)
 
+  def _menu_touch_contains(self, mouse_pos) -> bool:
+    menu_rect = rl.Rectangle(self._content_rect.x + 36,
+                             self._content_rect.y + 32,
+                             260,
+                             260)
+    return self._hud_renderer.set_speed_contains(mouse_pos) or rl.check_collision_point_rec(mouse_pos, menu_rect)
+
   def _handle_mouse_press(self, mouse_pos):
     self._set_speed_menu_pressed = False
     if self._mads_button.is_pressed:
       return
-    if self._hud_renderer.set_speed_contains(mouse_pos) and self._click_callback is not None:
+    if self._menu_touch_contains(mouse_pos) and self._click_callback is not None:
       self._set_speed_menu_pressed = True
       self._click_callback()
       return

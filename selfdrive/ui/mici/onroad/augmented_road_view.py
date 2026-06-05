@@ -185,11 +185,18 @@ class AugmentedRoadView(CameraView):
     else:
       self._offroad_label.set_text("start the car to\nuse sunnypilot")
 
+  def _menu_touch_contains(self, mouse_pos: MousePos) -> bool:
+    menu_rect = rl.Rectangle(self._content_rect.x,
+                             self._content_rect.y,
+                             220,
+                             190)
+    return self._hud_renderer.set_speed_contains(mouse_pos) or rl.check_collision_point_rec(mouse_pos, menu_rect)
+
   def _handle_mouse_release(self, mouse_pos: MousePos):
     # Don't trigger click callback if bookmark was triggered
     if self._bookmark_icon.interacting() or self._mads_button.is_pressed:
       return
-    if self._hud_renderer.set_speed_contains(mouse_pos):
+    if self._menu_touch_contains(mouse_pos):
       super()._handle_mouse_release(mouse_pos)
       return
     if self._mads_button.available():
