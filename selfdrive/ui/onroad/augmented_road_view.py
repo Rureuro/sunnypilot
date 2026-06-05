@@ -122,11 +122,19 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     self._pm.send('uiDebug', msg)
 
   def _menu_touch_contains(self, mouse_pos) -> bool:
-    menu_rect = rl.Rectangle(self._content_rect.x + 36,
-                             self._content_rect.y + 32,
-                             260,
-                             260)
-    return self._hud_renderer.set_speed_contains(mouse_pos) or rl.check_collision_point_rec(mouse_pos, menu_rect)
+    left_menu_rect = rl.Rectangle(self._content_rect.x + 36,
+                                  self._content_rect.y + 32,
+                                  260,
+                                  260)
+    exp_button_size = 192
+    exp_button_margin = 30
+    right_menu_rect = rl.Rectangle(self._content_rect.x + self._content_rect.width - exp_button_margin - exp_button_size,
+                                   self._content_rect.y + exp_button_margin + exp_button_size + 16,
+                                   exp_button_size,
+                                   exp_button_size)
+    return (self._hud_renderer.set_speed_contains(mouse_pos) or
+            rl.check_collision_point_rec(mouse_pos, left_menu_rect) or
+            rl.check_collision_point_rec(mouse_pos, right_menu_rect))
 
   def _handle_mouse_press(self, mouse_pos):
     self._set_speed_menu_pressed = False
