@@ -11,6 +11,7 @@ from openpilot.sunnypilot.selfdrive.car.sync_car_list_param import CAR_LIST_JSON
 
 ONROAD_BRIGHTNESS_MIGRATION_VERSION: str = "1.0"
 ONROAD_BRIGHTNESS_TIMER_MIGRATION_VERSION: str = "1.0"
+BLINKER_PAUSE_LATERAL_MIGRATION_VERSION: str = "1.0"
 
 # index → seconds mapping for OnroadScreenOffTimer (SSoT)
 ONROAD_BRIGHTNESS_TIMER_VALUES = {0: 3, 1: 5, 2: 7, 3: 10, 4: 15, 5: 30, **{i: (i - 5) * 60 for i in range(6, 16)}}
@@ -48,6 +49,16 @@ def _migrate_car_platform_bundle(_params):
 
 
 def run_migration(_params):
+  # restore Tesla MADS branch safety default: blinker pauses lateral control
+  if _params.get("BlinkerPauseLateralControlMigrated") != BLINKER_PAUSE_LATERAL_MIGRATION_VERSION:
+    try:
+      _params.put_bool("BlinkerPauseLateralControl", True)
+      _params.put("BlinkerPauseLateralControlMigrated", BLINKER_PAUSE_LATERAL_MIGRATION_VERSION)
+      cloudlog.info("Successfully migrated BlinkerPauseLateralControl to enabled. " +
+                    f"Setting BlinkerPauseLateralControlMigrated to {BLINKER_PAUSE_LATERAL_MIGRATION_VERSION}")
+    except Exception as e:
+      cloudlog.exception(f"Error migrating BlinkerPauseLateralControl: {e}")
+
   # migrate OnroadScreenOffBrightness
   if _params.get("OnroadScreenOffBrightnessMigrated") != ONROAD_BRIGHTNESS_MIGRATION_VERSION:
     try:
