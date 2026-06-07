@@ -76,7 +76,8 @@ class BigInputDialog(BigDialogBase):
                default_text: str = "",
                minimum_length: int = 1,
                confirm_callback: Callable[[str], None] | None = None,
-               auto_return_to_letters: str = ""):
+               auto_return_to_letters: str = "",
+               prefer_text_start: bool = False):
     super().__init__()
     self._hint_label = UnifiedLabel(hint, font_size=35, text_color=rl.Color(255, 255, 255, int(255 * 0.35)),
                                     font_weight=FontWeight.MEDIUM)
@@ -84,6 +85,7 @@ class BigInputDialog(BigDialogBase):
     self._keyboard.set_text(default_text)
     self._keyboard.set_enabled(lambda: self.enabled and not self.is_dismissing)  # for nav stack + NavWidget
     self._minimum_length = minimum_length
+    self._prefer_text_start = prefer_text_start
 
     self._backspace_held_time: float | None = None
 
@@ -136,7 +138,7 @@ class BigInputDialog(BigDialogBase):
 
     # draw text input
     # push text left with a gradient on left side if too long
-    if text_size.x > text_field_rect.width:
+    if text_size.x > text_field_rect.width and not self._prefer_text_start:
       text_x -= text_size.x - text_field_rect.width
 
     rl.begin_scissor_mode(int(text_field_rect.x), int(text_field_rect.y), int(text_field_rect.width), int(text_field_rect.height))

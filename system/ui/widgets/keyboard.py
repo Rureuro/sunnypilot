@@ -254,7 +254,7 @@ class Keyboard(Widget):
       if not self._caps_lock and self._layout_name == "uppercase":
         self._layout_name = "lowercase"
 
-  def reset(self, min_text_size: int | None = None):
+  def reset(self, min_text_size: int | None = None, default_text: str = ""):
     if min_text_size is not None:
       self._min_text_size = min_text_size
     self._last_shift_press_time = 0
@@ -262,6 +262,8 @@ class Keyboard(Widget):
     self._backspace_press_time = 0.0
     self._backspace_last_repeat = 0.0
     self.clear()
+    if default_text:
+      self.set_text(default_text)
 
 
 if __name__ == "__main__":

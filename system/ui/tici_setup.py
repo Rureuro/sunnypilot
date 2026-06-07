@@ -327,9 +327,8 @@ class Setup(Widget):
       elif result == DialogResult.CANCEL:
         self.state = SetupState.SOFTWARE_SELECTION
 
-    self.keyboard.reset(min_text_size=1)
+    self.keyboard.reset(min_text_size=1, default_text=CUSTOM_SOFTWARE_URL)
     self.keyboard.set_title("Enter URL", "for Custom Software")
-    self.keyboard.set_text(CUSTOM_SOFTWARE_URL)
     self.keyboard.set_callback(handle_keyboard_result)
     gui_app.push_widget(self.keyboard)
 
