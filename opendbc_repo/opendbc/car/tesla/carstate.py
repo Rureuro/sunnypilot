@@ -12,6 +12,8 @@ from opendbc.sunnypilot.car.tesla.carstate_ext import CarStateExt
 
 DRIVER_STEER_HANDS_ON_LEVEL = 2
 DRIVER_STEER_KEEPALIVE_HANDS_ON_LEVEL = 1
+# Avoid permanently classifying brief stock ELA/LKAS angle-control bursts as missing FSD14 firmware.
+FSD14_ANGLE_CONTROL_LATCH_FRAMES = 300
 
 
 class CarState(CarStateBase, CarStateExt):
@@ -26,6 +28,7 @@ class CarState(CarStateBase, CarStateExt):
     self.cruise_enabled_prev = False
     self.fsd14_error_logged = False
     self.suspected_fsd14 = False
+    self.fsd14_angle_control_frames = 0
 
     self.hands_on_level = 0
     self.driver_steering_latched = False
@@ -127,8 +130,9 @@ class CarState(CarStateBase, CarStateExt):
     # On FSD 14+, ANGLE_CONTROL behavior changed to allow user winddown while actuating.
     # FSD switched from using ANGLE_CONTROL to LANE_KEEP_ASSIST to likely keep the old steering override disengage logic.
     # LKAS switched from LANE_KEEP_ASSIST to ANGLE_CONTROL to likely allow overriding LKAS events smoothly
+    steering_control_type = cp_ap_party.vl["DAS_steeringControl"]["DAS_steeringControlType"]
     lkas_ctrl_type = get_steer_ctrl_type(self.CP.flags, 2)
-    ret.stockLkas = cp_ap_party.vl["DAS_steeringControl"]["DAS_steeringControlType"] == lkas_ctrl_type  # LANE_KEEP_ASSIST
+    ret.stockLkas = steering_control_type == lkas_ctrl_type  # LANE_KEEP_ASSIST
 
     # Stock Autosteer should be off (includes FSD)
     # TODO: find for TESLA_MODEL_X and HW2.5 vehicles
@@ -138,9 +142,14 @@ class CarState(CarStateBase, CarStateExt):
       # Because we don't have FSD 14 detection outside of a set of FW, we should check if this FW is accidentally missing from FSD_14_FW
       # 1. If in Autosteer or FSD, already caught by invalidLkasSetting
       # 2. If in TACC and DAS ever sends ANGLE_CONTROL (1), we can infer it's trying to do LKAS on FSD 14+
-      angle_control = cp_ap_party.vl["DAS_steeringControl"]["DAS_steeringControlType"] == 1  # ANGLE_CONTROL
+      angle_control = steering_control_type == 1  # ANGLE_CONTROL
       if not ret.invalidLkasSetting and angle_control and not self.CP.flags & TeslaFlags.FSD_14:
-        self.suspected_fsd14 = True
+        ret.stockLkas = True
+        self.fsd14_angle_control_frames = min(self.fsd14_angle_control_frames + 1, FSD14_ANGLE_CONTROL_LATCH_FRAMES)
+        if self.fsd14_angle_control_frames >= FSD14_ANGLE_CONTROL_LATCH_FRAMES:
+          self.suspected_fsd14 = True
+      else:
+        self.fsd14_angle_control_frames = 0
 
       if self.suspected_fsd14:
         ret.invalidLkasSetting = True
